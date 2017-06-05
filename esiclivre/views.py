@@ -120,7 +120,9 @@ class PedidoApi(Resource):
             db.session.commit()
             author_id = author.id
 
-        pre_pedido = PrePedido(author_id=author_id, orgao_name=args['orgao'])
+        pre_pedido = PrePedido(
+            author_id=author_id, orgao_name=args['orgao'], tipo=0
+        )
 
         # Set keywords
         for keyword_name in args['keywords']:
@@ -135,11 +137,70 @@ class PedidoApi(Resource):
         pre_pedido.text = text
         pre_pedido.state = 'WAITING'
         pre_pedido.created_at = arrow.now()
-
+        pre_pedido.tipo = 0
         db.session.add(pre_pedido)
         db.session.commit()
         return {'status': 'ok'}
 
+
+@api.route('/recursos')
+class RecursoApi(Resource):
+
+    @api.doc(parser=api.create_parser('token', 'text', 'orgao', 'keywords'))
+    def post(self):
+        '''Adds a new pedido to be submited to eSIC.'''
+        args = api.general_parse()
+        decoded = decode_token(args['token'], sv, api)
+        author_name = decoded['username']
+
+        text = bleach.clean(args['text'], strip=True)
+
+        # Size limit enforced by eSIC
+        if len(text) > 6000:
+            api.abort_with_msg(400, 'Text size limit exceeded.', ['text'])
+
+        # Validate 'orgao'
+        if args['orgao']:
+            orgao_exists = db.session.query(Orgao).filter_by(
+                name=args['orgao']).count() == 1
+            if not orgao_exists:
+                api.abort_with_msg(400, 'Orgao not found.', ['orgao'])
+        else:
+            api.abort_with_msg(400, 'No Orgao specified.', ['orgao'])
+
+        # Get author (add if needed)
+        try:
+            author_id = db.session.query(Author.id)
+                .filter_by(name=author_name)
+                .one()
+        except NoResultFound:
+            author = Author(name=author_name)
+            db.session.add(author)
+            db.session.commit()
+            author_id = author.id
+
+        pre_pedido = PrePedido(
+            author_id=author_id, orgao_name=args['orgao'], tipo=1
+        )
+
+        # Set keywords
+        for keyword_name in args['keywords']:
+            try:
+                keyword = (db.session.query(Keyword)
+                           .filter_by(name=keyword_name).one())
+            except NoResultFound:
+                keyword = Keyword(name=keyword_name)
+                db.session.add(keyword)
+                db.session.commit()
+        pre_pedido.keywords = ','.join(k for k in args['keywords'])
+        pre_pedido.protocolo = 1234
+        pre_pedido.text = text
+        pre_pedido.state = 'WAITING'
+        pre_pedido.created_at = arrow.now()
+        pre_pedido.tipo = 1
+        db.session.add(pre_pedido)
+        db.session.commit()
+        return {'status': 'ok'}
 
 @api.route('/pedidos/protocolo/<int:protocolo>')
 class GetPedidoProtocolo(Resource):
@@ -187,8 +248,6 @@ class GetPedidoKeyword(Resource):
                     pedidos, key=lambda p: p.request_date, reverse=True
                 )
             ],
-            'prepedidos': [p for p in list_all_prepedidos()
-                           if keyword_name in p['keywords']],
         }
 
 
@@ -220,7 +279,6 @@ class GetAuthor(Resource):
 
     def get(self, name):
         '''Returns pedidos marked with a specific keyword.'''
-        # TODO: endpoint dando erro
         try:
             author = (db.session.query(Author)
                       .options(joinedload('pedidos'))
@@ -272,8 +330,9 @@ def list_all_prepedidos():
             'orgao': p.orgao_name,
             'created': p.created_at.isoformat(),
             'keywords': p.keywords,
+            'tipo': p.tipo,
             'author': a.name,
-            } for p, a in q.all()]
+} for p, a in q.all()]
 
 
 def set_captcha_func(value):
