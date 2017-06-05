@@ -70,3 +70,6 @@ captcha.jpg
 somCaptcha.wav
 .ropeproject
 prod_settings.py
+
+# Web Server Gateway Interface
+wsgi.py
