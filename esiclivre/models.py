@@ -68,11 +68,13 @@ class PrePedido(db.Model):
 
     state = db.Column(db.String(255))  # WAITING or PROCESSED
 
+    tipo = db.Column(db.Integer)
+
+    protocol = db.Column(db.Integer(5))
+
     created_at = db.Column(sa_utils.ArrowType)
 
     updated_at = db.Column(sa_utils.ArrowType)
-
-    tipo = db.Column(db.Integer)
 
     @property
     def as_dict(self):
