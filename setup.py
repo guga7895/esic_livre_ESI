@@ -12,22 +12,6 @@ setup(
     url='https://gitlab.com/ok-br/esiclivre',
     packages=["esiclivre"],
     install_requires=[
-        # Main deps:
-        # 'Flask',
-        # 'Flask-Script',
-        # 'Flask-Restplus==0.7.2',
-        # 'Flask-CORS',
-        # 'Flask-SQLAlchemy',
-        # 'viratoken',
-        # 'viralata',
-        # 'selenium',
-        # 'requests',
-        # 'speechrecognition==2.2.0',
-        # 'beautifulsoup4',
-        # 'bleach',
-        # 'sqlalchemy-utils',
-        # 'arrow',
-        # 'psycopg2',  # for Postgres support
         'aniso8601==1.0.0',
         'arrow==0.7.0',
         'beautifulsoup4==4.4.1',
@@ -74,7 +58,7 @@ setup(
         'wheel==0.24.0',
         'viratoken',
         'viralata',
-        'internetarchive',
+        'internetarchive'
     ],
     keywords=['esic', 'microservice'],
     classifiers=[
